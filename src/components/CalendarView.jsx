@@ -1,7 +1,12 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-const CalendarView = ({ todos, currentDate, setCurrentDate }) => {
+const CalendarView = ({
+  todos,
+  currentDate,
+  setCurrentDate,
+  setSelectedDate,
+  selectedDate,
+}) => {
   const today = new Date();
   const daysOfWeek = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
@@ -34,40 +39,49 @@ const CalendarView = ({ todos, currentDate, setCurrentDate }) => {
 
   const goToToday = () => setCurrentDate(new Date());
 
-  // Fungsi untuk menangani pemilihan tanggal
   const handleDateClick = (day) => {
     const newDate = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
       day
     );
-    setCurrentDate(newDate); // Update currentDate ke tanggal yang dipilih
+
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, "0");
+    const aDay = String(newDate.getDate()).padStart(2, "0");
+    const formattedDate = `${year}-${month}-${aDay}`;
+
+    setSelectedDate(formattedDate); // Gunakan tanggal yang sudah diformat
+    setCurrentDate(newDate);
   };
 
   const renderDays = () => {
     const days = [];
-    // Tambahkan sel kosong untuk hari-hari sebelum tanggal pertama bulan ini
     for (let i = 0; i < startingDay; i++) {
       days.push(<div key={`empty-${i}`} className="p-2"></div>);
     }
 
-    // Menampilkan setiap tanggal dalam bulan ini
     for (let day = 1; day <= totalDays; day++) {
       const date = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
         day
       );
-      const dateString = date.toISOString().split("T")[0]; // Mengambil hanya tanggal (YYYY-MM-DD)
-      const isToday = date.toDateString() === today.toDateString(); // Cek apakah tanggal ini adalah hari ini
-      const hasTask = taskDates.has(dateString); // Cek apakah tanggal ini ada tugas
 
-      // Menambahkan gaya untuk tanggal yang dipilih atau hari ini
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth() 0-indexed, jadi +1
+      const aDay = String(date.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${aDay}`;
+      const isToday = date.toDateString() === today.toDateString();
+      const isSelected = selectedDate === dateString; // Check if this day is selected
+      const hasTask = taskDates.has(dateString);
+
       let dayClass = isToday
-        ? "bg-indigo-600 text-white font-bold" // Gaya untuk hari ini (background biru penuh)
-        : "text-gray-700 hover:bg-blue-100"; // Gaya untuk tanggal lain (lingkaran biru dengan teks abu-abu)
+        ? "bg-indigo-600 text-white font-bold" // Full fill for today
+        : isSelected
+        ? "border-2 border-blue-500 text-blue-500 font-bold" // Border for selected day
+        : "text-gray-700 hover:bg-blue-100"; // Default for other days
 
-      // Menampilkan tanggal dengan lingkaran biru jika ada tugas
       let taskMarker = hasTask && !isToday && (
         <div className="absolute mt-6 w-1 h-1 bg-green-500 rounded-full"></div>
       );
@@ -79,7 +93,7 @@ const CalendarView = ({ todos, currentDate, setCurrentDate }) => {
         >
           <div
             className={`w-9 h-9 flex justify-center items-center rounded-full cursor-pointer transition-colors relative ${dayClass}`}
-            onClick={() => handleDateClick(day)} // Menangani klik tanggal
+            onClick={() => handleDateClick(day)}
           >
             <span>{day}</span>
             {taskMarker}

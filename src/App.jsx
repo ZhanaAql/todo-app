@@ -1,36 +1,42 @@
-import React, { useState, useEffect } from "react";
+// src/App.jsx
+
+import React, { useState, useEffect, useRef } from "react"; // 1. IMPORT useRef
 import CalendarView from "./components/CalendarView";
 import TodoList from "./components/TodoList";
 import { loadTodos, saveTodos } from "./utils/storage";
-import { Plus } from "lucide-react";
 
 export default function App() {
-  const [todos, setTodos] = useState([]);
+  const [todos, setTodos] = useState(loadTodos());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [taskText, setTaskText] = useState("");
   const [taskDate, setTaskDate] = useState("");
   const [currentTodo, setCurrentTodo] = useState(null);
-  const [currentDate, setCurrentDate] = useState(new Date()); // State untuk kalender
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
+  // 2. BUAT REF UNTUK MENANDAI RENDER AWAL
+  const isInitialMount = useRef(true);
+
+  // 3. MODIFIKASI useEffect UNTUK MENYIMPAN DATA
   useEffect(() => {
-    const storedTodos = loadTodos();
-    if (storedTodos) {
-      setTodos(storedTodos);
+    // JIKA INI ADALAH RENDER PERTAMA...
+    if (isInitialMount.current) {
+      // UBAH TANDANYA MENJADI FALSE DAN JANGAN LAKUKAN APA-APA
+      isInitialMount.current = false;
+    } else {
+      // JIKA BUKAN RENDER PERTAMA, BARULAH SIMPAN DATA
+      saveTodos(todos);
     }
-  }, []);
-
-  useEffect(() => {
-    saveTodos(todos);
-  }, [todos]);
+  }, [todos]); // Efek ini tetap bergantung pada 'todos'
 
   const handleOpenAddModal = () => {
     setTaskText("");
     setTaskDate("");
-    setIsModalOpen(true); // Modal terbuka
+    setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false); // Modal tertutup
+    setIsModalOpen(false);
     setCurrentTodo(null);
   };
 
@@ -38,8 +44,7 @@ export default function App() {
     e.preventDefault();
     if (!taskText.trim() || !taskDate) return;
 
-    // Pastikan hanya menyimpan tanggal dalam format YYYY-MM-DD (tanpa waktu)
-    const formattedDate = taskDate.split("T")[0]; // Mengambil bagian tanggal saja (YYYY-MM-DD)
+    const formattedDate = taskDate.split("T")[0];
 
     if (currentTodo) {
       setTodos(
@@ -55,13 +60,20 @@ export default function App() {
       const newTodo = {
         id: Date.now(),
         text: taskText,
-        date: formattedDate, // Menyimpan hanya tanggal (bukan waktu)
+        date: formattedDate,
         completed: false,
       };
       setTodos(
         [...todos, newTodo].sort((a, b) => new Date(a.date) - new Date(b.date))
       );
     }
+
+    const localDateString = formattedDate.replace(/-/g, "/");
+    const newNavigationDate = new Date(localDateString);
+
+    setCurrentDate(newNavigationDate);
+    setSelectedDate(formattedDate);
+
     handleCloseModal();
   };
 
@@ -69,7 +81,7 @@ export default function App() {
     setCurrentTodo(todo);
     setTaskText(todo.text);
     setTaskDate(todo.date);
-    setIsModalOpen(true); // Modal terbuka untuk edit tugas
+    setIsModalOpen(true);
   };
 
   const handleDeleteTodo = (id) => {
@@ -78,30 +90,33 @@ export default function App() {
     }
   };
 
+  const filteredTodos = selectedDate
+    ? todos.filter((todo) => todo.date === selectedDate)
+    : todos;
+
   return (
     <div className="bg-gray-100 min-h-screen font-sans flex items-center justify-center p-4 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <header className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">
-            Interview Calendar
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-800">To-do List App</h1>
         </header>
         <div className="flex flex-col lg:flex-row gap-8">
           <CalendarView
             todos={todos}
             currentDate={currentDate}
             setCurrentDate={setCurrentDate}
+            setSelectedDate={setSelectedDate}
+            selectedDate={selectedDate}
           />
           <TodoList
-            todos={todos}
+            todos={filteredTodos}
             handleOpenAddModal={handleOpenAddModal}
-            handleEditTodo={handleEditTodo} // Menambahkan fungsi edit
-            handleDeleteTodo={handleDeleteTodo} // Menambahkan fungsi delete
+            handleEditTodo={handleEditTodo}
+            handleDeleteTodo={handleDeleteTodo}
           />
         </div>
       </div>
 
-      {/* Modal untuk menambah tugas */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
